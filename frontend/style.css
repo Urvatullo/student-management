@@ -1,0 +1,30 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+}
+
+h1 {
+    color: darkblue;
+}
+
+p {
+    font-size: 18px;
+}
+
+h2 {
+    color: darkblue;
+}
+
+.student {
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #cccccc;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.students {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    }

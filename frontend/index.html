@@ -6,31 +6,34 @@
     </head>
 
     <body>
-        <h1>Student Management System</h1>
+        <h1 id="title">Student Management System</h1>
+
+        <button id="changeButton">Change Title</button>
+
+        <button id="showStudentsButton">Show Students</button>
+
+        <div>
+            <label>Name </label>
+            <input id="nameInput" type="text">
+        </div>
+
+        <div>
+            <label>Age</label>
+            <input id="ageInput" type="number">
+        </div>
+
+        <div>
+            <label>Group</label>
+            <input id="groupInput" type="text">
+        </div>
+
+        <button id="addStudentButton">Add Student</button>
+
         <p>Welcome to our Student Management System.</p>
         
         <h2>Students</h2>
-        
-        <div class="students">
-            
-            <div class="student">
-                <h3>Urvatullo</h3>
-                <p>Age: 21</p>
-                <p>Group IT-01</p>
-            </div>
 
-            <div class="student">
-                <h3>Muhammad</h3>
-                <p>Age: 25</p>
-                <p>Group IT-02</p>
-            </div>
-            
-            <div class="student">
-                <h3>Qosim</h3>
-                <p>Age: 27</p>
-                <p>Group IT-03</p>
-            </div>
-        
-        </div>
+        <div id="studentsList"></div>
+        <script src="script.js"></script>
     </body>
 </html>

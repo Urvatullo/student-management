@@ -1,46 +1,43 @@
 <script setup>
-  import { computed, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import {
+   getStudents, 
+   createStudent, 
+   updateStudent, 
+   deleteStudent as deleteStudentApi 
+  } from "./api/studentApi";
+
 import StudentCard from "./components/StudentCard.vue";
 
   const editingIndex = ref(null);
 
-  const students = ref([
-      {
-        name: "Urvatullo",
-        age: 21,
-        group: "IT-101"
-      },
-      {
-        name: "Qosim",
-        age: 27,
-        group: "IT-102"
-      },
-      {
-        name: "Muhammad",
-        age: 25,
-        group: "IT-103"
-      }
-  ]);
+  const students = ref([]);
 
   const name = ref("");
   const age = ref("");
   const group = ref("");
 
-  function addStudent() {
-    if(editingIndex.value !== null) {
-      students.value[editingIndex.value] = {
-        name: name.value,
-        age: Number(age.value),
-        group: group.value
-      };
+  async function addStudent() {
+    if (editingIndex.value !== null) {
+        const id = students.value[editingIndex.value].id;
 
-      editingIndex.value = null;
+        const updatedStudent = {
+            name: name.value,
+            age: Number(age.value),
+            group: group.value
+        };
 
-      name.value = "";
-      age.value = "";
-      group.value = "";
+        const result = await updateStudent(id, updatedStudent);
 
-      return;
+        students.value[editingIndex.value] = result;
+
+        editingIndex.value = null;
+
+        name.value = "";
+        age.value = "";
+        group.value = "";
+
+        return;
     }
 
     if(name.value === "" || age.value === "" || group.value === "") {
@@ -49,13 +46,16 @@ import StudentCard from "./components/StudentCard.vue";
     }
 
     const newStudent = {
-      name: name.value,
-      age: Number(age.value),
-      group: group.value
+        name: name.value,
+        age: Number(age.value),
+        group: group.value
     };
-   
-    students.value.push(newStudent);
-    console.log(newStudent);
+
+    const createdStudent = await createStudent(newStudent);
+
+    students.value.push(createdStudent);
+
+    console.log(createdStudent);
 
     name.value = "";
     age.value = "";
@@ -63,21 +63,26 @@ import StudentCard from "./components/StudentCard.vue";
   }
 
   function editStudent(student) {
-    editingIndex.value = students.value.indexOf(student);
+      editingIndex.value = students.value.indexOf(student);
 
-    name.value = students.name;
-    age.value = students.age;
-    group.value = students.group;
-
+      name.value = student.name;
+      age.value = student.age;
+      group.value = student.group;
   }
 
-  function deleteStudent(student) {
-    const index = students.value.indexOf(student);
+  async function deleteStudent(student) {
+      await deleteStudentApi(student.id);
 
-    students.value.splice(index,1);
+      students.value = students.value.filter(
+          s => s.id !== student.id
+      );
   }
 
   const search = ref("");
+
+  onMounted(async () => {
+      students.value = await getStudents();
+  });
 
   const filteredStudents = computed(() => {
     return students.value.filter(student =>
@@ -113,14 +118,14 @@ import StudentCard from "./components/StudentCard.vue";
   <h2>Students</h2>
 
   <div class="students-grid">
-    <StudentCard 
-      v-for="(student, index) in filteredStudents" 
-      :key="student.name"
-      :student="student"
-      @delete="deleteStudent(student)"
-      @edit="editStudent(student)"
+    <StudentCard
+        v-for="(student in filteredStudents"
+        :key="student.id"
+        :student="student"
+        @delete="deleteStudent(student)"
+        @edit="editStudent(student)"
     />
-  </div>
+</div>
 </template>
 
 ////////////////////////////////////////////////////////////////

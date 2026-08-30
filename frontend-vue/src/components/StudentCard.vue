@@ -11,7 +11,7 @@ const emit = defineEmits(["delete", "edit"]);
     <div class="student-card">
         <h3>{{ props.student.name }}</h3>
         <p>Age: {{ props.student.age }}</p>
-        <p>Group: {{ props.student.group }}</p>
+        <p>Group: {{ props.student.group.name }}</p>
 
         <button class="edit-button" @click="emit('edit')">
             Edit

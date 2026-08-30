@@ -1,12 +1,33 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+
+
+class GroupCreate(BaseModel):
+    name: str
+
+
+class GroupResponse(GroupCreate):
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StudentCreate(BaseModel):
     name: str
     age: int
-    group: str
+    group_id: int
 
-class StudentUpdate(BaseModel):
+
+class StudentUpdate(StudentCreate):
+    pass
+
+
+class StudentResponse(StudentCreate):
+    id: int
+    group: GroupResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
+class GroupStatsResponse(BaseModel):
+    id: int
     name: str
-    age: int
-    group: str
+    student_count: int

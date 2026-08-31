@@ -22,26 +22,77 @@ import StudentCard from "./components/StudentCard.vue";
 
   const errorMessage = ref("");
   const successMessage = ref("");
+  const isLoading = ref(false);
+  const isSaving = ref(false);
   const newGroupName = ref("");
   const name = ref("");
   const age = ref("");
   const group = ref("");
 
-  async function loadStudents() {
-      students.value = await getStudents(
-          search.value,
-          selectedGroup.value
-      );
-  }
+  async function addGroup() {
+      if (newGroupName.value.trim() === "") {
+          errorMessage.value = "Please enter a group name";
+          return;
+      }
 
-  async function addStudent() {
       errorMessage.value = "";
       successMessage.value = "";
 
-      if (name.value.trim() === "" || age.value === "" || group.value === "") {
+      try {
+          const createdGroup = await createGroup({
+              name: newGroupName.value.trim()
+          });
+
+          groups.value.push(createdGroup);
+
+          newGroupName.value = "";
+
+          successMessage.value = "Group added successfully!";
+
+          await loadData();
+      } catch (error) {
+          errorMessage.value =
+              error.response?.data?.detail ||
+              "Failed to create group";
+      }
+  }
+
+  async function loadStudents() {
+      isLoading.value = true;
+      errorMessage.value = "";
+
+      try {
+          students.value = await getStudents(
+              search.value,
+              selectedGroup.value
+          );
+      } catch (error) {
+          errorMessage.value =
+              error.response?.data?.detail ||
+              "Failed to load students. Please try again.";
+      } finally {
+          isLoading.value = false;
+      }
+  }
+
+  async function addStudent() {
+      if (isSaving.value) {
+          return;
+      }
+
+      errorMessage.value = "";
+      successMessage.value = "";
+
+      if (
+          name.value.trim() === "" ||
+          age.value === "" ||
+          group.value === ""
+      ) {
           errorMessage.value = "Please fill in all fields";
           return;
       }
+
+      isSaving.value = true;
 
       try {
           if (editingIndex.value !== null) {
@@ -64,6 +115,7 @@ import StudentCard from "./components/StudentCard.vue";
               group.value = "";
 
               successMessage.value = "Student updated successfully!";
+
               return;
           }
 
@@ -84,7 +136,10 @@ import StudentCard from "./components/StudentCard.vue";
           successMessage.value = "Student added successfully!";
       } catch (error) {
           errorMessage.value =
-              error.response?.data?.detail || "Failed to save student";
+              error.response?.data?.detail ||
+              "Failed to save student";
+      } finally {
+          isSaving.value = false;
       }
   }
 
@@ -96,9 +151,25 @@ import StudentCard from "./components/StudentCard.vue";
       group.value = String(student.group_id);
   }
 
-  async function deleteStudent(student) {
+  function cancelEdit() {
+      editingIndex.value = null;
+      name.value = "";
+      age.value = "";
+      group.value = "";
+
       errorMessage.value = "";
       successMessage.value = "";
+  }
+
+  async function deleteStudent(student) {
+      if (isSaving.value) {
+          return;
+      }
+
+      errorMessage.value = "";
+      successMessage.value = "";
+
+      isSaving.value = true;
 
       try {
           await deleteStudentApi(student.id);
@@ -110,7 +181,10 @@ import StudentCard from "./components/StudentCard.vue";
           successMessage.value = "Student deleted successfully!";
       } catch (error) {
           errorMessage.value =
-              error.response?.data?.detail || "Failed to delete student";
+              error.response?.data?.detail ||
+              "Failed to delete student";
+      } finally {
+          isSaving.value = false;
       }
   }
 
@@ -118,17 +192,36 @@ import StudentCard from "./components/StudentCard.vue";
 
   const selectedGroup = ref(null);
 
-  onMounted(async () => {
-    const [loadedGroups, loadedGroupStats] = await Promise.all([
-      getGroups(),
-      getGroupStats()
-  ]);
+  async function loadData() {
+      isLoading.value = true;
+      errorMessage.value = "";
 
-  groups.value = loadedGroups;
-  groupStats.value = loadedGroupStats;
+      try {
+          const [loadedGroups, loadedGroupStats] = await Promise.all([
+              getGroups(),
+              getGroupStats()
+          ]);
 
-  await loadStudents();
+          groups.value = loadedGroups;
+          groupStats.value = loadedGroupStats;
+
+          students.value = await getStudents(
+              search.value,
+              selectedGroup.value
+          );
+      } catch (error) {
+          errorMessage.value =
+              error.response?.data?.detail ||
+              "Failed to load data. Please try again.";
+      } finally {
+          isLoading.value = false;
+      }
+  }
+
+  onMounted(() => {
+       loadData();
   });
+
 
 </script>
 
@@ -180,9 +273,11 @@ import StudentCard from "./components/StudentCard.vue";
           Add Group
       </button>
   </div>
-
+ 
   <div class="add-student-form">
-    <h2>Add Student</h2>
+    <h2>
+        {{ editingIndex === null ? "Add Student" : "Edit Student" }}
+    </h2>
 
     <input v-model="name" placeholder="Name">
 
@@ -200,7 +295,25 @@ import StudentCard from "./components/StudentCard.vue";
       </option>
     </select>
 
-    <button class="add-button" @click="addStudent">{{ editingIndex === null ? "Add Student" : "Edit Student" }}</button>
+    <button
+        class="add-button"
+        @click="addStudent"
+        :disabled="isSaving"
+    >
+        {{ isSaving
+            ? "Saving..."
+            : editingIndex === null
+                ? "Add Student"
+                : "Edit Student"
+        }}
+    </button>
+    <button
+        v-if="editingIndex !== null"
+        class="cancel-button"
+        @click="cancelEdit"
+    >
+        Cancel
+    </button>
   </div>
 
   <div class="search-box">
@@ -232,20 +345,101 @@ import StudentCard from "./components/StudentCard.vue";
 
   <h2>Students</h2>
 
-  <div class="students-grid">
-    <StudentCard
-        v-for="student in students"
-        :key="student.id"
-        :student="student"
-        @delete="deleteStudent(student)"
-        @edit="editStudent(student)"
-    />
-</div>
+  <div v-if="isLoading" class="loading">
+      Loading...
+  </div>
+
+  <div v-else-if="errorMessage" class="error-message">
+      {{ errorMessage }}
+
+      <button class="retry-button" @click="loadData">
+          Retry
+      </button>
+  </div>
+
+  <div v-else class="students-grid">
+      <StudentCard
+          v-for="student in students"
+          :key="student.id"
+          :student="student"
+          @delete="deleteStudent(student)"
+          @edit="editStudent(student)"
+      />
+  </div>
+
 </template>
 
 ////////////////////////////////////////////////////////////////
 
 <style scoped>
+.add-button:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cancel-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.loading {
+    text-align: center;
+    margin: 30px auto;
+    font-size: 18px;
+    font-weight: 600;
+    color: #2563eb;
+}
+
+.error-message {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 15px 20px;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.retry-button {
+    margin-left: 15px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #dc2626;
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.retry-button:hover {
+    background-color: #b91c1c;
+}
+
+.cancel-button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    background-color: #6b7280;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.cancel-button:hover {
+    background-color: #4b5563;
+}
+
+.cancel-button:active {
+    transform: scale(0.97);
+}
+
 .message {
     max-width: 500px;
     margin: 15px auto;

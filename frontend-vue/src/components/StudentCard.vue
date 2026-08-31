@@ -1,4 +1,8 @@
 <script setup>
+import { ref } from "vue";
+
+const confirmDelete = ref(false);
+
 const props = defineProps ({
     student: Object
 });
@@ -16,13 +20,76 @@ const emit = defineEmits(["delete", "edit"]);
         <button class="edit-button" @click="emit('edit')">
             Edit
         </button>
-        <button class="delete-button" @click="emit('delete')">
+        <button
+            v-if="!confirmDelete"
+            class="delete-button"
+            @click="confirmDelete = true"
+        >
             Delete
         </button>
+
+        <div v-else class="delete-confirm">
+            <span>Are you sure?</span>
+
+            <button
+                class="cancel-delete"
+                @click="confirmDelete = false"
+            >
+                Cancel
+            </button>
+
+            <button
+                class="confirm-delete"
+                @click="$emit('delete'); confirmDelete = false"
+            >
+                Delete
+            </button>
+        </div>
     </div>
 </template>
 
 <style scoped>
+.delete-button {
+    background-color: #dc2626;
+    color: white;
+}
+
+.delete-button:hover {
+    background-color: #b91c1c;
+}
+
+.delete-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.delete-confirm span {
+    width: 100%;
+    color: #b91c1c;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.cancel-delete {
+    background-color: #6b7280;
+    color: white;
+}
+
+.cancel-delete:hover {
+    background-color: #4b5563;
+}
+
+.confirm-delete {
+    background-color: #dc2626;
+    color: white;
+}
+
+.confirm-delete:hover {
+    background-color: #b91c1c;
+}
+
 button {
   padding: 10px 18px;
   border: none;
